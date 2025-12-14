@@ -340,7 +340,7 @@
       <div class="title-row">
         <h1>
           ML Flashcards
-          <span class="badge"> </span>
+          <span class="badge">Dark · Markdown · LaTeX</span>
         </h1>
       </div>
       <div class="top-bar">
@@ -362,7 +362,7 @@
     <main class="card-wrapper">
       <section class="card" id="card">
         <div class="card-inner">
-          <div class="card-label">Вопрос</div>
+          <div class="card-label">ВОПРОС</div>
           <div class="question-text" id="question-text"></div>
 
           <div class="answer-container hidden" id="answer-container">
@@ -390,8 +390,16 @@
       </section>
     </main>
 
+    <footer class="brand">
+      Карточки редактируются в массиве <code>cards</code> внизу файла.
+    </footer>
+  </div>
+
   <script>
+    // Markdown с переносами строк
     marked.setOptions({ breaks: true });
+
+    // === КАРТОЧКИ ===
 const cards = [
   {
     topic: "база",
@@ -1301,6 +1309,7 @@ $$
   }
 ];
 
+    // === ЛОГИКА ===
     let currentIndex = 0;
     let answerVisible = false;
 
@@ -1317,10 +1326,13 @@ $$
 
     function renderCard() {
       const card = cards[currentIndex];
+
+      // ВОПРОС — тоже через Markdown, чтобы **жирный** работал
       questionEl.innerHTML = marked.parse(card.question.trim());
       topicEl.textContent = card.topic || "Теория";
       counterEl.textContent = `${currentIndex + 1} / ${cards.length}`;
 
+      // Ответ
       const html = marked.parse(card.answer.trim());
       answerBodyEl.innerHTML = html;
 
@@ -1332,8 +1344,9 @@ $$
         btnToggleAnswer.textContent = "Показать ответ";
       }
 
+      // Рендерим формулы и в вопросе, и в ответе
       if (window.MathJax && window.MathJax.typesetPromise) {
-        MathJax.typesetPromise([answerBodyEl]).catch((err) =>
+        MathJax.typesetPromise([questionEl, answerBodyEl]).catch((err) =>
           console.error("MathJax error:", err)
         );
       }
