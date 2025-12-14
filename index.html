@@ -403,8 +403,18 @@
       let s = md;
 
       const push = (match) => {
+        // Normalize common "double-escaped" MathJax delimiters like \( ... \) that appear
+        // when the source text was over-escaped (e.g., copy-paste from code blocks).
+        // Keep real LaTeX newlines \ intact (only fix delimiters/braces).
+        const normalized = match
+          .replace(/\\\(/g, "\(")
+          .replace(/\\\)/g, "\)")
+          .replace(/\\\[/g, "\[")
+          .replace(/\\\]/g, "\]")
+          .replace(/\\\{/g, "\{")
+          .replace(/\\\}/g, "\}");
         const key = "%%MATH_" + placeholders.length + "%%";
-        placeholders.push(match);
+        placeholders.push(normalized);
         return key;
       };
 
