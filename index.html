@@ -9,13 +9,14 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <!-- MathJax config -->
-  <script>
+    <script>
     window.MathJax = {
       tex: {
-        inlineMath: [['$', '$']],
-        displayMath: [['$$', '$$']]
+        inlineMath: [['$', '$'], ['\(', '\)']],
+        displayMath: [['$$', '$$'], ['\[', '\]']],
+        processEscapes: true
       },
-      svg: { fontCache: 'global' }
+      chtml: { fontCache: 'global' }
     };
   </script>
   <script
@@ -393,7 +394,36 @@
   </div>
 
   <script>
-    marked.setOptions({ breaks: true });
+    marked.setOptions({ breaks: true, mangle: false, headerIds: false });
+
+
+    // --- Protect LaTeX from markdown parser (fixes underscores, asterisks, etc. being interpreted) ---
+    function markdownToHtmlPreservingMath(md) {
+      const placeholders = [];
+      let s = md;
+
+      const push = (match) => {
+        const key = "%%MATH_" + placeholders.length + "%%";
+        placeholders.push(match);
+        return key;
+      };
+
+      // Display math first (can contain newlines)
+      s = s.replace(/\$\$[\s\S]*?\$\$/g, push);
+      s = s.replace(/\\\[[\s\S]*?\\\]/g, push);
+
+      // Inline math \( ... \)
+      s = s.replace(/\\\([\s\S]*?\\\)/g, push);
+
+      // Inline math $ ... $ (single dollar, no newlines)
+      s = s.replace(/(^|[^$\\])\$(?!\$)([^\n]*?)\$(?!\$)/g, function(_, pre, inner) {
+        return pre + push("$" + inner + "$");
+      });
+
+      const html = marked.parse((s || "").trim());
+      return html.replace(/%%MATH_(\d+)%%/g, (_, i) => placeholders[Number(i)]);
+    }
+
 
     const cards = [
       {
@@ -1157,12 +1187,11 @@ $$
     function renderCard() {
       const card = cards[currentIndex];
 
-      questionEl.innerHTML = marked.parse(card.question.trim());
+      questionEl.innerHTML = markdownToHtmlPreservingMath(card.question);
       topicEl.textContent = card.topic || "Теория";
       counterEl.textContent = (currentIndex + 1) + " / " + cards.length;
 
-      const html = marked.parse(card.answer.trim());
-      answerBodyEl.innerHTML = html;
+      answerBodyEl.innerHTML = markdownToHtmlPreservingMath(card.answer);
 
       if (answerVisible) {
         answerContainerEl.classList.remove("hidden");
@@ -1173,6 +1202,7 @@ $$
       }
 
       if (window.MathJax && window.MathJax.typesetPromise) {
+        MathJax.typesetClear();
         MathJax.typesetPromise([questionEl, answerBodyEl]).catch(function (err) {
           console.error("MathJax error:", err);
         });
